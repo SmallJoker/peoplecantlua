@@ -148,12 +148,12 @@ local function flatten(ppos, radius)
 		--[[
 			+----+----+----+
 			|  1 |  2 |  1 |   4
-			|  2 |  4 |  2 |   8
+			|  2 |  1 |  2 |   5
 			|  1 |  2 |  1 |   4
-			+----+----+----+   -> 16
+			+----+----+----+   -> 13
 		]]
 		local old_h = get_height(heightmap, x, z, fallback_y)
-		local h = old_h * 4 + (
+		local h = old_h + (
 			  get_height(heightmap, x    , z - E, fallback_y)
 			+ get_height(heightmap, x - E, z    , fallback_y)
 			+ get_height(heightmap, x + E, z    , fallback_y)
@@ -165,7 +165,7 @@ local function flatten(ppos, radius)
 			+ get_height(heightmap, x + E, z + E, fallback_y)
 		)
 
-		h = math.floor(h / 16 + 0.5)
+		h = math.floor(h / 13 + 0.5)
 		if h ~= old_h then
 			-- Height changed -> Change terrain
 			local nodes = heightmap[z * 0x10000 + x].c_contents
@@ -203,8 +203,8 @@ minetest.register_chatcommand("flat", {
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
 		local player_pos = vector.round(player:getpos())
-		-- Flatten an area of (2 * 4 + 1) ^ 2 nodes
-		flatten(player_pos, 4)
+		-- Flatten an area of (2 * 6 + 1) ^ 2 m
+		flatten(player_pos, 6)
 		return true, "OK."
 	end
 })
