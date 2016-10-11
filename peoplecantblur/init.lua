@@ -13,14 +13,21 @@ local function check_surface_content(c_id, cache_c)
 	-- Not contain in the table yet
 	local name = minetest.get_name_from_content_id(c_id)
 	local def = minetest.registered_nodes[name]
-	if def and def.groups then
-		local is_surface_content = def.groups.soil or def.groups.sand or def.groups.stone
-		cache_c[c_id] = (is_surface_content ~= nil)
-		return is_surface_content
+	if not (def and def.groups) then
+		return false -- Unknown node
 	end
 
-	-- Fallback for unknown nodes
-	return false
+	local is_surface_content = def.groups.soil or def.groups.sand or def.groups.stone
+	if not is_surface_content then
+		for k, v in pairs(minetest.registered_biomes) do
+			if v.node_top == name then
+				is_surface_content = true
+				break
+			end
+		end
+	end
+	cache_c[c_id] = (is_surface_content ~= nil)
+	return is_surface_content
 end
 
 -- Find the ground of a coordinate
@@ -49,7 +56,7 @@ local function get_ground(data, area, pos, max_height, cache_c, get_contents)
 			local is_surface_content = check_surface_content(c_id, cache_c)
 			id_cache[y] = { c_id, is_surface_content }
 
-			if not is_surface_content then
+			if not is_surface_content and c_id ~= c_air then
 				rel_surface = y - 1
 				break
 			end
@@ -126,25 +133,24 @@ local function flatten(ppos, radius)
 
 	-- Get the relative height from the heightmap with relative coordinates
 	local get_height = function(map, x, z, fallback)
-		local info = map[math.floor(z + 0.5) * 0x10000 + math.floor(x + 0.5)]
+		local info = map[z * 0x10000 + x]
 		if info and info.rel_surface then
 			return info.rel_surface
 		end
 		return fallback
 	end
 
-	local fallback_y = get_height(heightmap, ppos.x, ppos.z)
-	if not fallback_y then
-		minetest.log("warning", "Could not find the relative fallback height. Reset to 0")
-		fallback_y = 0
-	end
-
 	local _dirty_ = false
 	local E = 1 -- effect width
 
 	-- Apply blur filter on each position and update the nodes
-	for z = minp.z + 1, maxp.z - 1 do
-	for x = minp.x + 1, maxp.x - 1 do
+	for z = minp.z + E, maxp.z - E do
+	for x = minp.x + E, maxp.x - E do
+		local p_info = heightmap[z * 0x10000 + x]
+		local nodes = p_info.c_contents
+		local old_h = p_info.rel_surface
+
+		if nodes and #nodes > 0 and old_h then
 		--[[
 			+----+----+----+
 			|  1 |  2 |  1 |   4
@@ -152,24 +158,21 @@ local function flatten(ppos, radius)
 			|  1 |  2 |  1 |   4
 			+----+----+----+   -> 13
 		]]
-		local old_h = get_height(heightmap, x, z, fallback_y)
 		local h = old_h + (
-			  get_height(heightmap, x    , z - E, fallback_y)
-			+ get_height(heightmap, x - E, z    , fallback_y)
-			+ get_height(heightmap, x + E, z    , fallback_y)
-			+ get_height(heightmap, x    , z + E, fallback_y)
+			  get_height(heightmap, x    , z - E, old_h)
+			+ get_height(heightmap, x - E, z    , old_h)
+			+ get_height(heightmap, x + E, z    , old_h)
+			+ get_height(heightmap, x    , z + E, old_h)
 		) * 2 + (
-			  get_height(heightmap, x - E, z - E, fallback_y)
-			+ get_height(heightmap, x + E, z - E, fallback_y)
-			+ get_height(heightmap, x - E, z + E, fallback_y)
-			+ get_height(heightmap, x + E, z + E, fallback_y)
+			  get_height(heightmap, x - E, z - E, old_h)
+			+ get_height(heightmap, x + E, z - E, old_h)
+			+ get_height(heightmap, x - E, z + E, old_h)
+			+ get_height(heightmap, x + E, z + E, old_h)
 		)
 
 		h = math.floor(h / 13 + 0.5)
 		if h ~= old_h then
 			-- Height changed -> Change terrain
-			local nodes = heightmap[z * 0x10000 + x].c_contents
-
 			local max_y = math.max(h, old_h) + 1
 			local min_y = math.min(h, old_h) - 3
 			local i = 1
@@ -184,6 +187,7 @@ local function flatten(ppos, radius)
 				_dirty_ = true
 			end
 		end
+		end
 	end
 	end
 
@@ -191,8 +195,8 @@ local function flatten(ppos, radius)
 		return
 	end
 	vm:set_data(data)
-	vm:calc_lighting()
 	vm:write_to_map(data)
+	vm:update_liquids()
 	vm:update_map()
 end
 
