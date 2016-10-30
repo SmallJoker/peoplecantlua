@@ -1,6 +1,6 @@
 -- peoplecantblur - Generate flat areas
 
-local HEIGHT_CHECK = 20
+local HEIGHT_CHECK = 30
 local c_air = minetest.get_content_id("air")
 
 
@@ -36,7 +36,7 @@ local function get_ground(data, area, pos, max_height, cache_c, get_contents)
 	local rel_surface -- Relative height of surface
 
 	-- Find the ground height (check downwards)
-	for y = 0, -max_height, -1 do
+	for y = 0, -max_height + 4, -1 do
 		local c_id = data[area:index(pos.x, pos.y + y, pos.z)]
 		local is_surface_content = check_surface_content(c_id, cache_c)
 		id_cache[y] = { c_id, is_surface_content }
@@ -51,13 +51,15 @@ local function get_ground(data, area, pos, max_height, cache_c, get_contents)
 
 	if not rel_surface then
 		-- Check upper area
-		for y = 1, max_height do
+		for y = max_height - 1, 0, -1 do
 			local c_id = data[area:index(pos.x, pos.y + y, pos.z)]
 			local is_surface_content = check_surface_content(c_id, cache_c)
 			id_cache[y] = { c_id, is_surface_content }
 
-			if not is_surface_content and c_id ~= c_air then
-				rel_surface = y - 1
+			if is_surface_content then
+				if y ~= max_height - 1 then
+					rel_surface = y
+				end
 				break
 			end
 		end
@@ -92,9 +94,21 @@ local function get_ground(data, area, pos, max_height, cache_c, get_contents)
 		end
 	end
 
+	-- Stretch the node above if it's air, a liquid, tree etc.
+	local c_above
+	local c_id = id_cache[rel_surface + 1][1]
+	local name = minetest.get_name_from_content_id(c_id)
+	local def = minetest.registered_nodes[name]
+	if def and (def.drawtype == "normal"
+			or def.drawtype == "airlike"
+			or def.drawtype == "liquid") then
+		c_above = c_id
+	end
+
 	return {
 		rel_surface = rel_surface,
-		c_contents = c_contents
+		c_contents = c_contents,
+		c_above = (c_above or c_air)
 	}
 end
 
@@ -149,6 +163,7 @@ local function flatten(ppos, radius)
 		local p_info = heightmap[z * 0x10000 + x]
 		local nodes = p_info.c_contents
 		local old_h = p_info.rel_surface
+		local above = p_info.c_above
 
 		if nodes and #nodes > 0 and old_h then
 		--[[
@@ -179,7 +194,11 @@ local function flatten(ppos, radius)
 			for y = max_y, min_y, -1 do
 				local vi = area:index(x, ppos.y + y, z)
 				if y > h then
-					data[vi] = c_air
+					if h > old_h then
+						data[vi] = c_air
+					else
+						data[vi] = above
+					end
 				else
 					data[vi] = nodes[math.min(#nodes, i)]
 					i = i + 1
@@ -207,8 +226,8 @@ minetest.register_chatcommand("flat", {
 	func = function(name, param)
 		local player = minetest.get_player_by_name(name)
 		local player_pos = vector.round(player:getpos())
-		-- Flatten an area of (2 * 6 + 1) ^ 2 m
-		flatten(player_pos, 6)
+		-- Flatten an area of (2 * 7 + 1) ^ 2 square meters
+		flatten(player_pos, 7)
 		return true, "OK."
 	end
 })
