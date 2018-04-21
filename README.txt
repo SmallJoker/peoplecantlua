@@ -7,6 +7,9 @@ Warning: The repository name and all parts of it might contain some sarcasm.
  Module descriptions
 ---------------------
 
+blur:
+	Flattens the terrain using some kind of blur function.
+
 mapgen:
 	Place a schematic when a new chunk is generated.
 

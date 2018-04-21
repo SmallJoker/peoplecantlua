@@ -1,5 +1,7 @@
  People can't plant
 ====================
+This mod automatically plants dropped sapling items.
+
 
 Depends: none!
 
@@ -7,4 +9,4 @@ Depends: none!
 ----------
 
 Source code:
-	LGPL 2.1
+	CC0
