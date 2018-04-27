@@ -1,6 +1,7 @@
 -- peoplecantblur - Generate flat areas
 
 local HEIGHT_CHECK = 30
+local BLUR_ITERATIONS = 8
 local c_air = minetest.get_content_id("air")
 
 
@@ -127,6 +128,7 @@ local function flatten(ppos, radius)
 	local emin, emax = vm:read_from_map(minp, maxp)
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
 	local data = vm:get_data()
+	local sidelen = maxp.x - minp.x + 1
 
 	-- Lookup table for content ID groups
 	local cache_c = {}
@@ -134,20 +136,20 @@ local function flatten(ppos, radius)
 	for z = minp.z, maxp.z do
 	for x = minp.x, maxp.x do
 		local ground = get_ground(
-				data,
-				area,
-				vector.new(x, ppos.y, z),
-				max_height,
-				cache_c,
-				math.abs(x - ppos.x) <= radius and math.abs(z - ppos.z) <= radius
+			data,
+			area,
+			vector.new(x, ppos.y, z),
+			max_height,
+			cache_c,
+			math.abs(x - ppos.x) <= radius and math.abs(z - ppos.z) <= radius
 		)
-		heightmap[z * 0x10000 + x] = ground
+		heightmap[(z - minp.z) * sidelen + (x - minp.x)] = ground
 	end
 	end
 
 	-- Get the relative height from the heightmap with relative coordinates
 	local get_height = function(map, x, z, fallback)
-		local info = map[z * 0x10000 + x]
+		local info = map[(z - minp.z) * sidelen + (x - minp.x)]
 		if info and info.rel_surface then
 			return info.rel_surface
 		end
@@ -155,12 +157,12 @@ local function flatten(ppos, radius)
 	end
 
 	local _dirty_ = false
-	local E = 1 -- effect width
 
 	-- Apply blur filter on each position and update the nodes
-	for z = minp.z + E, maxp.z - E do
-	for x = minp.x + E, maxp.x - E do
-		local p_info = heightmap[z * 0x10000 + x]
+	for n = 0, BLUR_ITERATIONS do
+	for z = minp.z + 1, maxp.z - 1 do
+	for x = minp.x + 1, maxp.x - 1 do
+		local p_info = heightmap[(z - minp.z) * sidelen + (x - minp.x)]
 		local nodes = p_info.c_contents
 		local old_h = p_info.rel_surface
 		local above = p_info.c_above
@@ -174,15 +176,15 @@ local function flatten(ppos, radius)
 			+----+----+----+   -> 13
 		]]
 		local h = old_h + (
-			  get_height(heightmap, x    , z - E, old_h)
-			+ get_height(heightmap, x - E, z    , old_h)
-			+ get_height(heightmap, x + E, z    , old_h)
-			+ get_height(heightmap, x    , z + E, old_h)
+			  get_height(heightmap, x    , z - 1, old_h)
+			+ get_height(heightmap, x - 1, z    , old_h)
+			+ get_height(heightmap, x + 1, z    , old_h)
+			+ get_height(heightmap, x    , z + 1, old_h)
 		) * 2 + (
-			  get_height(heightmap, x - E, z - E, old_h)
-			+ get_height(heightmap, x + E, z - E, old_h)
-			+ get_height(heightmap, x - E, z + E, old_h)
-			+ get_height(heightmap, x + E, z + E, old_h)
+			  get_height(heightmap, x - 1, z - 1, old_h)
+			+ get_height(heightmap, x + 1, z - 1, old_h)
+			+ get_height(heightmap, x - 1, z + 1, old_h)
+			+ get_height(heightmap, x + 1, z + 1, old_h)
 		)
 
 		h = math.floor(h / 13 + 0.5)
@@ -207,6 +209,7 @@ local function flatten(ppos, radius)
 			end
 		end
 		end
+	end
 	end
 	end
 
