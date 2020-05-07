@@ -46,12 +46,12 @@ end
 -- Overwrite "on_step" in the entity that's used for dropped items
 local entity_def = minetest.registered_entities["__builtin:item"]
 local old_step = entity_def.on_step
-entity_def.on_step = function(self, dtime)
+entity_def.on_step = function(self, dtime, ...)
 	local old_acc = self.object:get_acceleration()
-	old_step(self, dtime)
+	old_step(self, dtime, ...)
 
-	if self.itemstring == "" then
-		return -- Item removed
+	if self.itemstring == "" or not self.object:get_pos() then
+		return -- Item is removed
 	end
 	if vector.equals(old_acc, {x=0, y=0, z=0}) then
 		return -- No motion change
