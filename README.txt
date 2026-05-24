@@ -1,8 +1,8 @@
  People can't Lua
 ==================
 
-This is a repository for basic mods for Minetest. It should give an idea how the stuff works.
-Warning: The repository name and all parts of it might contain some sarcasm.
+This is a repository for basic mods for Luanti. It should give an idea how some API works.
+Warning: This repository name (and its contents) may contain traces of sarcasm.
 
  Module descriptions
 ---------------------
@@ -14,4 +14,4 @@ mapgen:
 	Place a schematic when a new chunk is generated.
 
 plant:
-	Plant saplings when they're dropped by leaves and touch the ground
+	Plant saplings when they are dropped by leaves and touch the ground

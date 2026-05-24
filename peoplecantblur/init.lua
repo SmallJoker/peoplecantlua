@@ -2,7 +2,7 @@
 
 local HEIGHT_CHECK = 30
 local BLUR_ITERATIONS = 8
-local c_air = minetest.get_content_id("air")
+local c_air = core.get_content_id("air")
 
 
 -- Function to get the node definition groups to check for a surface node
@@ -12,15 +12,15 @@ local function check_surface_content(c_id, cache_c)
 	end
 
 	-- Not contain in the table yet
-	local name = minetest.get_name_from_content_id(c_id)
-	local def = minetest.registered_nodes[name]
+	local name = core.get_name_from_content_id(c_id)
+	local def = core.registered_nodes[name]
 	if not (def and def.groups) then
 		return false -- Unknown node
 	end
 
 	local is_surface_content = def.groups.soil or def.groups.sand or def.groups.stone
 	if not is_surface_content then
-		for k, v in pairs(minetest.registered_biomes) do
+		for k, v in pairs(core.registered_biomes) do
 			if v.node_top == name then
 				is_surface_content = true
 				break
@@ -98,8 +98,8 @@ local function get_ground(data, area, pos, max_height, cache_c, get_contents)
 	-- Stretch the node above if it's air, a liquid, tree etc.
 	local c_above
 	local c_id = id_cache[rel_surface + 1][1]
-	local name = minetest.get_name_from_content_id(c_id)
-	local def = minetest.registered_nodes[name]
+	local name = core.get_name_from_content_id(c_id)
+	local def = core.registered_nodes[name]
 	if def and (def.drawtype == "normal"
 			or def.drawtype == "airlike"
 			or def.drawtype == "liquid") then
@@ -124,7 +124,7 @@ local function flatten(ppos, radius)
 
 	local heightmap = {}
 
-	local vm = minetest.get_voxel_manip()
+	local vm = core.get_voxel_manip()
 	local emin, emax = vm:read_from_map(minp, maxp)
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
 	local data = vm:get_data()
@@ -223,11 +223,11 @@ local function flatten(ppos, radius)
 end
 
 
-minetest.register_chatcommand("flat", {
+core.register_chatcommand("flat", {
 	description = "Makes the area around you flatter.",
 	privs = {server = true},
 	func = function(name, param)
-		local player = minetest.get_player_by_name(name)
+		local player = core.get_player_by_name(name)
 		local player_pos = vector.round(player:getpos())
 		-- Flatten an area of (2 * 7 + 1) ^ 2 square meters
 		flatten(player_pos, 7)

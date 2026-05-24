@@ -2,8 +2,9 @@
 ====================
 This mod automatically plants dropped sapling items.
 
+It is recommended to use this mod with Minetest Game or compatible game.
 
-Depends: none!
+Depends: (none)
 
  Licenses
 ----------

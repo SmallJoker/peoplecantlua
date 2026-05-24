@@ -1,8 +1,8 @@
 -- peoplecantmapgen - Generate flats randomly
 
-local flat_path = minetest.get_modpath("peoplecantmapgen") .. "/schems/flat.mts"
+local flat_path = core.get_modpath("peoplecantmapgen") .. "/schems/flat.mts"
 
-minetest.register_on_generated(function(minp, maxp, seed)
+core.register_on_generated(function(minp, maxp, seed)
 	if maxp.y < 2 and minp.y > 0 then
 		-- Only generate this stuff around the y=0 position
 		return
@@ -16,11 +16,11 @@ minetest.register_on_generated(function(minp, maxp, seed)
 	end
 
 	-- Convert some nodes into content IDs to use in the VoxelManipulator
-	local c_air = minetest.get_content_id("air")
-	local c_grass = minetest.get_content_id("default:dirt_with_grass")
+	local c_air = core.get_content_id("air")
+	local c_grass = core.get_content_id("default:dirt_with_grass")
 
 	-- Load all the mapgen stuff
-	local vm = minetest.get_voxel_manip()
+	local vm = core.get_voxel_manip()
 	local emin, emax = vm:read_from_map(minp, maxp)
 	local area = VoxelArea:new{MinEdge=emin, MaxEdge=emax}
 	-- Array that contains all content IDs of this chunk
@@ -54,7 +54,7 @@ minetest.register_on_generated(function(minp, maxp, seed)
 
 	if found and last == c_grass then
 		-- Found grassy ground, place our flat
-		minetest.place_schematic(
+		core.place_schematic(
 			random_pos,
 			flat_path,
 			"random", -- Random rotation

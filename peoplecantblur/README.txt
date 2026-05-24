@@ -2,12 +2,12 @@
 ===================
 Uses the blur function to flatten areas with the chatcommand `/flat`
 
-Demonstration video: https://youtu.be/cYZayM6TNJk
+It is recommended to use this mod with Minetest Game or compatible game.
 
-Depends: default
+Depends: (none)
 
  Licenses
 ----------
 
 Source code:
-	WTFPL (created by Krock)
+	CC0
